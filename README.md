@@ -7,13 +7,6 @@
 
 An intelligent resume analysis tool that evaluates your resume against target job roles and provides AI-powered career guidance.
 
-## 📊 Implementation and Final Results
-
-![Implementation](implementation.jpg)
-
-This section illustrates how the resume analysis pipeline is implemented and presents a sample result screen from the final deployed application.
-
-
 ## Table of Contents
 - [Project Overview](#project-overview)
 - [Key Features](#key-features)
@@ -121,6 +114,12 @@ The application will open in your default browser at `http://localhost:8501`
 | 70-84 | Strong candidate |
 | 50-69 | Needs improvement |
 | <50 | Significant skill gaps |
+
+## 📊 Implementation and Final Results
+
+![Implementation](implementation.jpg)
+
+This section illustrates how the resume analysis pipeline is implemented and presents a sample result screen from the final deployed application.
 
 ### Output Sections:
 - **ATS Score**: Overall compatibility percentage
