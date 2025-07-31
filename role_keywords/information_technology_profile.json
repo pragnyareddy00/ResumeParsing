@@ -1,0 +1,36 @@
+{
+  "role": "Information Technology",
+  "required_skills": [
+    "networking",
+    "windows server",
+    "linux",
+    "active directory",
+    "troubleshooting",
+    "help desk",
+    "it security",
+    "cloud basics",
+    "virtualization",
+    "system administration"
+  ],
+  "optional_skills": [
+    "azure ad",
+    "aws",
+    "docker",
+    "powershell",
+    "python",
+    "cybersecurity",
+    "incident response",
+    "itil",
+    "devops",
+    "automation"
+  ],
+  "learning_paths": {
+    "active directory": [
+      "1. Set up a lab domain controller",
+      "2. Create and manage user accounts",
+      "3. Configure group policies",
+      "4. Implement security policies",
+      "5. Practice common administrative tasks"
+    ]
+  }
+}

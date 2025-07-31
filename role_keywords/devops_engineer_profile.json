@@ -1,0 +1,43 @@
+{
+  "role": "DevOps Engineer",
+  "required_skills": [
+    "docker",
+    "kubernetes",
+    "terraform",
+    "ci/cd",
+    "aws",
+    "linux",
+    "bash",
+    "python",
+    "iac",
+    "monitoring"
+  ],
+  "optional_skills": [
+    "azure",
+    "gcp",
+    "ansible",
+    "jenkins",
+    "gitlab",
+    "prometheus",
+    "grafana",
+    "helm",
+    "istio",
+    "serverless"
+  ],
+  "learning_paths": {
+    "docker": [
+      "1. Complete Docker's official getting started tutorial",
+      "2. Build and deploy sample containerized applications",
+      "3. Learn Docker networking and storage concepts",
+      "4. Practice multi-container applications with Docker Compose",
+      "5. Implement Docker in a CI/CD pipeline"
+    ],
+    "kubernetes": [
+      "1. Complete Kubernetes basics on Katacoda",
+      "2. Set up a local minikube cluster",
+      "3. Deploy sample applications with kubectl",
+      "4. Learn about pods, services, and deployments",
+      "5. Implement Helm charts for package management"
+    ]
+  }
+}

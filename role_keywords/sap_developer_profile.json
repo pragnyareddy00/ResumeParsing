@@ -1,0 +1,36 @@
+{
+  "role": "SAP Developer",
+  "required_skills": [
+    "abap",
+    "sap fiori",
+    "sap hana",
+    "sap modules",
+    "sap ui5",
+    "odata",
+    "bapi",
+    "sap netweaver",
+    "sap implementation",
+    "sap security"
+  ],
+  "optional_skills": [
+    "sap cloud platform",
+    "sap analytics",
+    "sap integration",
+    "sap bw",
+    "sap pi/po",
+    "machine learning",
+    "iot",
+    "blockchain",
+    "mobile development",
+    "sap devops"
+  ],
+  "learning_paths": {
+    "abap": [
+      "1. Set up SAP developer access",
+      "2. Learn basic ABAP syntax",
+      "3. Create simple reports and transactions",
+      "4. Work with ALV grids",
+      "5. Develop custom enhancements"
+    ]
+  }
+}

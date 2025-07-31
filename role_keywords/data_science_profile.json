@@ -1,0 +1,27 @@
+{
+  "role": "Data Science",
+  "required_skills": [
+    "python",
+    "machine learning",
+    "statistics",
+    "data visualization",
+    "sql",
+    "pandas",
+    "numpy",
+    "data cleaning",
+    "scikit-learn"
+  ],
+  "optional_skills": [
+    "deep learning",
+    "tensorflow",
+    "pytorch",
+    "natural language processing",
+    "computer vision",
+    "big data",
+    "spark",
+    "cloud computing",
+    "docker",
+    "tableau",
+    "power bi"
+  ]
+}

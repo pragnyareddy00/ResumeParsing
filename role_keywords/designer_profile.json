@@ -1,0 +1,27 @@
+{
+  "role": "Designer",
+  "required_skills": [
+    "adobe photoshop",
+    "adobe illustrator",
+    "typography",
+    "color theory",
+    "layout design",
+    "user interface design",
+    "brand identity",
+    "design thinking"
+  ],
+  "optional_skills": [
+    "adobe indesign",
+    "figma",
+    "sketch",
+    "adobe xd",
+    "motion graphics",
+    "3d modeling",
+    "web design",
+    "print design",
+    "ux research",
+    "prototyping",
+    "illustration",
+    "photography"
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "role": "ETL Developer",
+  "required_skills": [
+    "sql",
+    "python",
+    "etl concepts",
+    "data warehousing",
+    "informatica",
+    "talend",
+    "ssis",
+    "oracle",
+    "snowflake",
+    "data modeling"
+  ],
+  "optional_skills": [
+    "apache airflow",
+    "apache spark",
+    "hadoop",
+    "hive",
+    "kafka",
+    "data quality",
+    "data governance",
+    "power bi",
+    "tableau",
+    "cloud etl"
+  ],
+  "learning_paths": {
+    "informatica": [
+      "1. Install Informatica PowerCenter Developer",
+      "2. Complete basic data extraction and loading exercises",
+      "3. Learn transformation techniques",
+      "4. Practice workflow automation",
+      "5. Implement a complete ETL pipeline"
+    ]
+  }
+}

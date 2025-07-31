@@ -1,0 +1,36 @@
+{
+  "role": "Testing",
+  "required_skills": [
+    "manual testing",
+    "test cases",
+    "defect tracking",
+    "regression testing",
+    "smoke testing",
+    "test plans",
+    "jira",
+    "agile",
+    "sql",
+    "api testing"
+  ],
+  "optional_skills": [
+    "selenium",
+    "cypress",
+    "jmeter",
+    "load testing",
+    "security testing",
+    "test automation",
+    "ci/cd",
+    "bdd",
+    "performance testing",
+    "mobile testing"
+  ],
+  "learning_paths": {
+    "selenium": [
+      "1. Install Selenium WebDriver",
+      "2. Write basic test scripts",
+      "3. Implement page object model",
+      "4. Create data-driven tests",
+      "5. Integrate with CI pipeline"
+    ]
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "role": "React Developer",
+  "required_skills": [
+    "react",
+    "javascript",
+    "html/css",
+    "redux",
+    "hooks",
+    "rest apis",
+    "git",
+    "npm/yarn",
+    "responsive design",
+    "testing"
+  ],
+  "optional_skills": [
+    "typescript",
+    "next.js",
+    "graphql",
+    "jest",
+    "storybook",
+    "webpack",
+    "docker",
+    "aws amplify",
+    "serverless",
+    "pwa"
+  ],
+  "learning_paths": {
+    "react": [
+      "1. Complete React official tutorial",
+      "2. Build components with props/state",
+      "3. Implement routing with React Router",
+      "4. Add state management with Redux",
+      "5. Deploy a complete application"
+    ]
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "role": "Database",
+  "required_skills": [
+    "SQL",
+    "Database Design",
+    "Query Optimization",
+    "PostgreSQL",
+    "MySQL",
+    "Oracle",
+    "SQL Server",
+    "Indexing",
+    "Backup/Recovery"
+  ],
+  "optional_skills": [
+    "NoSQL",
+    "MongoDB",
+    "Redis",
+    "ETL",
+    "Data Warehousing",
+    "Power BI",
+    "Tableau",
+    "Python",
+    "Linux Administration"
+  ],
+  "common_technologies": [
+    "PostgreSQL",
+    "MySQL",
+    "Oracle",
+    "SQL Server",
+    "MongoDB",
+    "Redis"
+  ]
+}

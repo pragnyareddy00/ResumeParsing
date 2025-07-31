@@ -1,0 +1,36 @@
+{
+  "role": "Python Developer",
+  "required_skills": [
+    "python",
+    "django/flask",
+    "rest apis",
+    "sql",
+    "git",
+    "oop",
+    "testing",
+    "debugging",
+    "data structures",
+    "algorithms"
+  ],
+  "optional_skills": [
+    "aws",
+    "docker",
+    "ci/cd",
+    "machine learning",
+    "data analysis",
+    "asyncio",
+    "fastapi",
+    "graphql",
+    "microservices",
+    "serverless"
+  ],
+  "learning_paths": {
+    "django": [
+      "1. Complete Django official tutorial",
+      "2. Build a CRUD application",
+      "3. Implement user authentication",
+      "4. Create REST APIs with DRF",
+      "5. Deploy to production"
+    ]
+  }
+}
