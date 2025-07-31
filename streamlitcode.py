@@ -1,235 +1,290 @@
-import os
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-from PIL import Image
-import cv2
-import pytesseract
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Embedding, LSTM, Dense, Dropout
-from tensorflow.keras.models import load_model
 import streamlit as st
+import os
+import tempfile
+import re
+import json
+import pdfplumber
+from docx import Document
+import pytesseract
+from PIL import Image
+import spacy
 import nltk
 from nltk.corpus import stopwords
-from nltk.stem import WordNetLemmatizer
-import re
-import string
+from nltk.tokenize import word_tokenize
+import requests
+from huggingface_hub import login
 
-# Set paths
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-RESUME_PATH = "C:/Users/Pragnya Reddy/Downloads/resumes_project/Resumes"
-
-# Download NLTK data
+# Initialize NLTK and Spacy
 nltk.download('punkt')
-nltk.download('wordnet')
 nltk.download('stopwords')
+nlp = spacy.load("en_core_web_sm")
 
-# Preprocessing functions
-def preprocess_text(text):
-    # Convert to lowercase
-    text = text.lower()
-    # Remove punctuation
-    text = text.translate(str.maketrans('', '', string.punctuation))
-    # Remove numbers
-    text = re.sub(r'\d+', '', text)
-    # Remove extra whitespace
-    text = ' '.join(text.split())
-    # Tokenize
-    tokens = nltk.word_tokenize(text)
-    # Remove stopwords
-    stop_words = set(stopwords.words('english'))
-    tokens = [word for word in tokens if word not in stop_words]
-    # Lemmatization
-    lemmatizer = WordNetLemmatizer()
-    tokens = [lemmatizer.lemmatize(word) for word in tokens]
-    return ' '.join(tokens)
+# Hugging Face Token Setup
+HF_TOKEN = os.getenv("HF_TOKEN")
+if not HF_TOKEN:
+    st.error("Hugging Face token not configured! Please set HF_TOKEN in secrets.")
+    st.stop()
+login(token=HF_TOKEN)
 
-def extract_text_from_image(img_path):
-    # Read image using OpenCV
-    img = cv2.imread(img_path)
+# Page configuration
+st.set_page_config(
+    page_title="Resume Analyzer",
+    page_icon="📄",
+    layout="wide"
+)
+
+# CSS styling
+st.markdown("""
+    <style>
+    body { background-color: #f9f9f9; font-family: Arial, sans-serif; }
+    .stButton>button, .stFileUploader>div>div>button {
+        background-color: #4CAF50;
+        color: white;
+        border-radius: 4px;
+        padding: 10px 20px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# App title
+st.title("📄 Resume Analyzer")
+st.markdown("Upload your resume and select a job role to get an ATS score and skill analysis.")
+
+# Sidebar for inputs
+with st.sidebar:
+    st.header("Upload Resume")
+    uploaded_file = st.file_uploader("Choose a file (PDF, DOCX, PNG, JPG)", 
+                                   type=["pdf", "docx", "png", "jpg", "jpeg"])
     
-    # Convert to grayscale
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    st.header("Select Job Role")
+    role = st.selectbox(
+        "Choose the job role to analyze against:",
+        ["Data Science", "Database", "Designer", "Devops Engineer", "ETL", 
+         "Developer", "Information Technology", "Python Developer", 
+         "React Developer", "SAP Developer", "Testing"]
+    )
     
-    # Apply thresholding
-    thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
-    
-    # Apply OCR
-    text = pytesseract.image_to_string(thresh)
-    
+    analyze_button = st.button("Analyze Resume")
+
+# Text extraction functions
+def extract_text_from_pdf(pdf_path):
+    text = ""
+    with pdfplumber.open(pdf_path) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text()
     return text
 
-def load_and_preprocess_data(resume_path):
-    resumes = []
-    labels = []  # You can modify this to include actual labels if available
-    
-    for filename in os.listdir(resume_path):
-        if filename.endswith('.png'):
-            img_path = os.path.join(resume_path, filename)
-            text = extract_text_from_image(img_path)
-            processed_text = preprocess_text(text)
-            resumes.append(processed_text)
-            labels.append(1)  # Dummy label - replace with actual labels if available
-    
-    return resumes, labels
+def extract_text_from_docx(docx_path):
+    doc = Document(docx_path)
+    return "\n".join([para.text for para in doc.paragraphs])
 
-# LSTM Model
-def create_lstm_model(vocab_size, max_length):
-    model = Sequential()
-    model.add(Embedding(vocab_size, 100, input_length=max_length))
-    model.add(LSTM(100, dropout=0.2, recurrent_dropout=0.2))
-    model.add(Dense(64, activation='relu'))
-    model.add(Dropout(0.5))
-    model.add(Dense(1, activation='sigmoid'))
-    
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
-    return model
+def extract_text_from_image(image_path):
+    return pytesseract.image_to_string(Image.open(image_path))
 
-# Keyword matching function
-def calculate_keyword_score(resume_text, job_description_keywords):
-    vectorizer = TfidfVectorizer()
-    
-    # Combine resume and keywords for vectorization
-    documents = [resume_text, ' '.join(job_description_keywords)]
-    tfidf_matrix = vectorizer.fit_transform(documents)
-    
-    # Calculate cosine similarity
-    similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
-    
-    # Scale to 0-100
-    return round(similarity * 100, 2)
+def extract_text(file_path):
+    try:
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"File not found: {file_path}")
+            
+        if file_path.endswith('.pdf'):
+            try:
+                return extract_text_from_pdf(file_path)
+            except Exception as pdf_error:
+                print(f"PDF extraction failed, trying OCR: {pdf_error}")
+                return extract_text_from_image(file_path)
+                
+        elif file_path.endswith('.docx'):
+            return extract_text_from_docx(file_path)
+            
+        elif file_path.lower().endswith(('.png', '.jpg', '.jpeg')):
+            return extract_text_from_image(file_path)
+            
+        else:
+            raise ValueError(f"Unsupported file format: {os.path.splitext(file_path)[1]}")
+            
+    except Exception as e:
+        print(f"Error in extract_text: {str(e)}")
+        raise
 
-# Streamlit App
-def main():
-    st.title("Resume ATS Scoring System")
-    st.write("Upload your resume in PNG format to get an ATS score and improvement suggestions")
+# NLP processing functions
+def preprocess_text(text):
+    text = text.lower()
+    text = re.sub(r'[^a-zA-Z\s]', '', text)
+    tokens = word_tokenize(text)
+    stop_words = set(stopwords.words('english'))
+    filtered_tokens = [word for word in tokens if word not in stop_words]
+    doc = nlp(" ".join(filtered_tokens))
+    return [token.lemma_ for token in doc]
+
+def load_keywords(role):
+    role_files = {
+        "Data Science": "data_science_profile.json",
+        "Database": "database_profile.json",
+        "Designer": "designer_profile.json",
+        "Devops Engineer": "devops_engineer_profile.json",
+        "ETL": "etl_developer_profile.json",
+        "Information Technology": "information_technology_profile.json",
+        "Python Developer": "python_developer_profile.json",
+        "React Developer": "react_developer_profile.json",
+        "SAP Developer": "sap_developer_profile.json",
+        "Testing": "testing_profile.json"
+    }
     
-    # Load or train model
-    model_path = "resume_lstm_model.h5"
-    tokenizer_path = "tokenizer.pkl"
+    file_path = os.path.join("role_keywords", role_files.get(role))
+    with open(file_path, 'r') as f:
+        return json.load(f)
+
+def calculate_ats_score(resume_tokens, role_keywords):
+    required_skills = role_keywords.get("required_skills", [])
+    optional_skills = role_keywords.get("optional_skills", [])
     
-    if os.path.exists(model_path) and os.path.exists(tokenizer_path):
-        model = load_model(model_path)
-        tokenizer = pd.read_pickle(tokenizer_path)
+    matching_required = [skill for skill in required_skills if skill in resume_tokens]
+    matching_optional = [skill for skill in optional_skills if skill in resume_tokens]
+    
+    missing_required = [skill for skill in required_skills if skill not in resume_tokens]
+    missing_optional = [skill for skill in optional_skills if skill not in resume_tokens]
+    
+    req_score = (len(matching_required) / len(required_skills)) * 70 if required_skills else 0
+    opt_score = (len(matching_optional) / len(optional_skills)) * 30 if optional_skills else 0
+    total_score = req_score + opt_score
+    
+    return {
+        "score": round(total_score, 2),
+        "matching_skills": {
+            "required": matching_required,
+            "optional": matching_optional
+        },
+        "missing_skills": {
+            "required": missing_required,
+            "optional": missing_optional
+        }
+    }
+
+def get_ai_suggestions(missing_skills, role):
+    """Generate suggestions using Hugging Face's API"""
+    if not missing_skills:
+        return "🎉 Great job! You have all the required skills for this role!"
+
+    prompt = f"""
+    Suggest 3-5 practical ways to develop these {role} skills: {', '.join(missing_skills)}.
+    Focus on free resources and quick wins. Format as bullet points with emojis.
+    """
+    
+    try:
+        API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
+        headers = {"Authorization": f"Bearer {HF_TOKEN}"}
+        
+        response = requests.post(
+            API_URL,
+            headers=headers,
+            json={
+                "inputs": prompt,
+                "parameters": {
+                    "max_new_tokens": 200,
+                    "temperature": 0.7,
+                    "return_full_text": False
+                }
+            },
+            timeout=20
+        )
+        
+        if response.status_code == 200:
+            return response.json()[0]['generated_text'].strip()
+        else:
+            return f"⚠️ API limit reached. Try:\n- Coursera (free courses)\n- freeCodeCamp\n- YouTube tutorials"
+
+    except Exception as e:
+        return f"🚧 Suggestions engine busy. Quick tips:\n1. GitHub practice projects\n2. Online coding challenges\n3. Professional networking"
+
+# Main app logic
+if analyze_button and uploaded_file is not None:
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_file.name)[1]) as tmp_file:
+            tmp_file.write(uploaded_file.getbuffer())
+            tmp_path = tmp_file.name
+        
+        try:
+            text = extract_text(tmp_path)
+            if not text or len(text.strip()) < 10:
+                raise ValueError("Extracted text is too short or empty")
+            
+            resume_tokens = preprocess_text(text)
+            role_keywords = load_keywords(role)
+            analysis_result = calculate_ats_score(resume_tokens, role_keywords)
+            
+            # Display results
+            st.subheader(f"Analysis Results for {role} Role")
+            score = analysis_result["score"]
+            st.success(f"ATS Score: {score}/100")
+
+            with st.expander("✅ Matching Skills", expanded=True):
+                st.subheader("Required Skills Found")
+                if analysis_result["matching_skills"]["required"]:
+                    for skill in analysis_result["matching_skills"]["required"]:
+                        st.markdown(f"- {skill.capitalize()}")
+                else:
+                    st.warning("No matching required skills found.")
+                
+                st.subheader("Optional Skills Found")
+                if analysis_result["matching_skills"]["optional"]:
+                    for skill in analysis_result["matching_skills"]["optional"]:
+                        st.markdown(f"- {skill.capitalize()}")
+                else:
+                    st.info("No matching optional skills found.")
+
+            with st.expander("❌ Missing Skills", expanded=True):
+                st.subheader("Required Skills Missing")
+                if analysis_result["missing_skills"]["required"]:
+                    for skill in analysis_result["missing_skills"]["required"]:
+                        st.markdown(f"- {skill.capitalize()}")
+                else:
+                    st.success("All required skills are present!")
+                
+                st.subheader("Optional Skills Missing")
+                if analysis_result["missing_skills"]["optional"]:
+                    for skill in analysis_result["missing_skills"]["optional"]:
+                        st.markdown(f"- {skill.capitalize()}")
+                else:
+                    st.success("All optional skills are present!")
+
+            with st.expander("📝 Resume Text Preview"):
+                st.text_area("Extracted Text", value=text, height=300)
+
+        except Exception as e:
+            st.error(f"Analysis error: {str(e)}")
+        finally:
+            os.unlink(tmp_path)
+            
+    except Exception as e:
+        st.error(f"File processing error: {str(e)}")
+elif analyze_button and uploaded_file is None:
+    st.warning("Please upload a resume file first.")
+
+# AI Suggestions Section
+with st.expander("💡 AI Suggestions for Missing Skills"):
+    if uploaded_file and 'analysis_result' in locals():
+        all_missing = analysis_result["missing_skills"]["required"] + analysis_result["missing_skills"]["optional"]
+        if all_missing:
+            with st.spinner("Generating AI suggestions..."):
+                suggestions = get_ai_suggestions(all_missing, role)
+                st.markdown(suggestions)
+        else:
+            st.success("No missing skills found! 🎉")
     else:
-        # Train model (this would normally be done separately)
-        st.warning("Model not found. Training a new model...")
-        resumes, labels = load_and_preprocess_data(RESUME_PATH)
-        
-        # Tokenize text
-        tokenizer = Tokenizer()
-        tokenizer.fit_on_texts(resumes)
-        vocab_size = len(tokenizer.word_index) + 1
-        
-        # Convert text to sequences
-        sequences = tokenizer.texts_to_sequences(resumes)
-        max_length = max([len(seq) for seq in sequences])
-        padded_sequences = pad_sequences(sequences, maxlen=max_length, padding='post')
-        
-        # Train LSTM model
-        model = create_lstm_model(vocab_size, max_length)
-        model.fit(padded_sequences, np.array(labels), epochs=10, batch_size=32, validation_split=0.2)
-        
-        # Save model and tokenizer
-        model.save(model_path)
-        pd.to_pickle(tokenizer, tokenizer_path)
-    
-    # Job description keywords (customize this for different job roles)
-    job_description_keywords = [
-        'python', 'machine learning', 'deep learning', 'data analysis',
-        'sql', 'tensorflow', 'pytorch', 'natural language processing',
-        'computer vision', 'statistics', 'data visualization', 'pandas',
-        'numpy', 'scikit-learn', 'aws', 'docker', 'git', 'problem solving',
-        'communication', 'teamwork', 'project management'
-    ]
-    
-    # File uploader
-    uploaded_file = st.file_uploader("Choose a resume (PNG format)", type="png")
-    
-    if uploaded_file is not None:
-        # Save uploaded file
-        with open("temp_resume.png", "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        
-        # Extract text
-        resume_text = extract_text_from_image("temp_resume.png")
-        processed_text = preprocess_text(resume_text)
-        
-        # Display extracted text
-        with st.expander("View Extracted Text"):
-            st.text(resume_text)
-        
-        # Calculate scores
-        keyword_score = calculate_keyword_score(processed_text, job_description_keywords)
-        
-        # Prepare text for LSTM
-        sequences = tokenizer.texts_to_sequences([processed_text])
-        max_length = model.input_shape[1]
-        padded_sequences = pad_sequences(sequences, maxlen=max_length, padding='post')
-        
-        # Get LSTM prediction
-        lstm_score = model.predict(padded_sequences)[0][0] * 100
-        
-        # Combine scores (weighted average)
-        final_score = (keyword_score * 0.6 + lstm_score * 0.4)
-        
-        # Display scores
-        st.subheader("ATS Score")
-        st.progress(int(final_score))
-        st.write(f"**Overall ATS Score:** {final_score:.1f}/100")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write(f"**Keyword Matching Score:** {keyword_score:.1f}/100")
-        with col2:
-            st.write(f"**Content Quality Score:** {lstm_score:.1f}/100")
-        
-        # Generate suggestions
-        st.subheader("Improvement Suggestions")
-        
-        # Check for missing keywords
-        missing_keywords = [kw for kw in job_description_keywords if kw not in processed_text]
-        if missing_keywords:
-            st.write("**Add these relevant keywords:**")
-            st.write(", ".join(missing_keywords[:10]))  # Show first 10 missing keywords
-        
-        # Check resume length
-        word_count = len(processed_text.split())
-        if word_count < 200:
-            st.write("**Consider adding more details:** Your resume seems quite short.")
-        elif word_count > 800:
-            st.write("**Consider making it more concise:** Your resume might be too long.")
-        
-        # Check for sections
-        required_sections = ['experience', 'education', 'skills', 'projects']
-        missing_sections = [sec for sec in required_sections if sec not in resume_text.lower()]
-        if missing_sections:
-            st.write("**Add these missing sections:**")
-            st.write(", ".join(missing_sections))
-        
-        # Formatting tips
-        st.write("**Formatting Tips:**")
-        st.write("- Use clear section headings")
-        st.write("- Use bullet points for readability")
-        st.write("- Include measurable achievements")
-        st.write("- Keep consistent formatting throughout")
-        
-        # Visualize keyword matches
-        st.subheader("Keyword Analysis")
-        matched_keywords = [kw for kw in job_description_keywords if kw in processed_text]
-        unmatched_keywords = [kw for kw in job_description_keywords if kw not in processed_text]
-        
-        fig, ax = plt.subplots()
-        sns.barplot(x=['Matched', 'Unmatched'], 
-                    y=[len(matched_keywords), len(unmatched_keywords)],
-                    palette=['green', 'red'])
-        plt.title("Keyword Matching")
-        st.pyplot(fig)
+        st.info("Upload a resume and click 'Analyze' to get AI suggestions")
 
-if __name__ == "__main__":
-    main()
+# Instructions section
+with st.expander("ℹ️ How to Use This Tool"):
+    st.markdown("""
+    1. **Upload your resume** in PDF, DOCX, PNG, or JPG format  
+    2. **Select the job role** you're applying for  
+    3. Click **Analyze Resume** to get your ATS score and skill analysis
+    """)
+
+# Footer
+st.markdown("---")
+st.markdown("""
+    <div style="text-align: center;">
+        <p>Resume Analyzer Tool • Uses NLP to evaluate resume compatibility</p>
+    </div>
+""", unsafe_allow_html=True)
