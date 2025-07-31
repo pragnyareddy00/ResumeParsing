@@ -53,7 +53,7 @@ This AI-powered application analyzes resumes against 11 different job roles, pro
 
 ## Data Flow
 ```mermaid
-graph TD
+graph LR
 A[Resume Upload] --> B[Text Extraction]
 B --> C[NLP Processing]
 C --> D[Skill Matching]
